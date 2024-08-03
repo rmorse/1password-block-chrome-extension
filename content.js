@@ -21,7 +21,7 @@ function run() {
 						elementsToHide.push( element );
 					}
 				} );
-				const onepassButtonElements = document.getElementsByTagName( 'com-1password-notification' );
+				const onepassButtonElements = document.getElementsByTagName( 'com-1password-button' );
 				
 				Array.from( onepassButtonElements ).forEach( (element, index) => {
 					// Only add it again if its not already wrapped.
