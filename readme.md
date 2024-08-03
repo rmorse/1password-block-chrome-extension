@@ -1,6 +1,6 @@
 # Block the 1Password UI for specific domains.
 
-This is a simple extensions that hides the 1Password UI on domains that you have chosen.
+This is a simple extension that hides the 1Password UI on domains that you have chosen.
 
 __This plugin is currently being reviewed for approval on the Chrome extensions store.__
 
