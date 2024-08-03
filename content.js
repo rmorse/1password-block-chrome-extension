@@ -50,7 +50,6 @@ function wrapElementInHiddenContainer ( element ) {
     wrapper.className = 'onepassword-block-hide-element';
     element.parentNode.insertBefore(wrapper, element);
     wrapper.appendChild(element);
-	console.log(`element wrapped`);
 }
 
 if (document.readyState === 'complete') {
