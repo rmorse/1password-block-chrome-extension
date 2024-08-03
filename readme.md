@@ -21,7 +21,9 @@ You can install this extension by:
  - Enabling developer mode
  - Choose `Load unpacked`
  - Navigate to this extension folder and select it
- 
- 
- 
- 
+  
+ ## How it works
+
+The 1Password UI is added via the extension as web components.  We can't style external web components, so this extension wraps the components in a `div` and hides the `div` instead.
+
+I've intentionally not removed the components themselves in case it causes JavaScript errors.
