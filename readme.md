@@ -1,6 +1,6 @@
 # Block the 1Password UI for specific domains.
 
-This is a simple extensions that hides the 1Password UI on domains that you have chosen.
+This is a simple extension that hides the 1Password UI on domains that you have chosen.
 
 __This plugin is currently being reviewed for approval on the Chrome extensions store.__
 
@@ -21,7 +21,15 @@ You can install this extension by:
  - Enabling developer mode
  - Choose `Load unpacked`
  - Navigate to this extension folder and select it
- 
- 
- 
- 
+  
+ ## How it works
+
+The 1Password extension adds its UI to a page as web components.  We can't style external web components, so this extension wraps the components in a `div` and hides the `div` instead.
+
+I've intentionally not removed the components themselves in case it causes JavaScript errors.
+
+As there's no reliable way to check when the components get added, this extension polls every 100 milliseconds on page load looking for the 1Password UI, then hides it.
+
+It stops polling after 2 seconds.
+
+There may be a flicker as their UI gets added to a page and this extension hides it, although I haven't seen it yet.
