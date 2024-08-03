@@ -24,12 +24,10 @@ You can install this extension by:
   
  ## How it works
 
-The 1Password extension adds its UI to a page as web components.  We can't style external web components, so this extension wraps the components in a `div` and hides the `div` instead.
+The 1Password extension adds its UI to a page as web components.  We can't style external web components, so this extension moves the UI components into a hidden `div` instead.
 
 I've intentionally not removed the components themselves in case it causes JavaScript errors.
 
-As there's no reliable way to check when the components get added, this extension polls every 100 milliseconds on page load looking for the 1Password UI, then hides it.
+This extension uses a MutationObserver to watch for the 1Password UI to be added to the page and immediately moves the components into a hidden `div` instead.
 
-It stops polling after 2 seconds.
-
-There may be a flicker as their UI gets added to a page and this extension hides it, although I haven't seen it yet.
+There may be a flicker as their UI gets added to a page and this extension tries to hide it, although I haven't seen it yet.
