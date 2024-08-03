@@ -29,6 +29,15 @@ function run() {
 						elementsToHide.push( element );
 					}
 				} );
+
+				const onepassMenuElements = document.getElementsByTagName( 'com-1password-menu' );
+				
+				Array.from( onepassMenuElements ).forEach( (element, index) => {
+					// Only add it again if its not already wrapped.
+					if ( ! element.parentNode.classList.contains( 'onepassword-block-hide-element' ) ) {
+						elementsToHide.push( element );
+					}
+				} );
 				
 				// Loop and hide the elements.
 				elementsToHide.forEach( (element, index) => {
