@@ -4,6 +4,9 @@ This is a simple extensions that hides the 1Password UI on domains that you have
 
 __This plugin is currently being reviewed for approval on the Chrome extensions store.__
 
+![1password-block-screen](https://github.com/user-attachments/assets/0499605b-e1ca-47cb-a2b2-48f00fee9413)
+
+
 ## Usage
 
 Right click on any page, from the context menu choose the option `Block 1Password on domains` and then choose `Block domain` or `Unblock domain`.
