@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Block 1Password on domains.",
-  "version": "1.0",
+  "version": "1.1",
   "description": "A simple extension that blocks the 1Password UI for specific domains. Hides the UI with CSS (1Password still runs).",
   "permissions": ["activeTab", "tabs", "contextMenus", "storage"],
   "content_scripts": [
