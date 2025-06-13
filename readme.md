@@ -4,7 +4,7 @@ This is a simple extension that hides the 1Password UI on domains that you have 
 
 ![1password-block-screen](https://github.com/user-attachments/assets/0499605b-e1ca-47cb-a2b2-48f00fee9413)
 
-## Get the extension from the [Chrome web store](https://chromewebstore.google.com/).
+## Get the extension from the [Chrome web store](https://chromewebstore.google.com/detail/block-1password-on-domain/mhelapmjbokoddhlgokolgmmfakdhmha).
 - Search for "Block 1Password on domains"
 - Or [visit the direct link](https://chromewebstore.google.com/detail/block-1password-on-domain/mhelapmjbokoddhlgokolgmmfakdhmha)
 
