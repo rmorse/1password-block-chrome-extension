@@ -78,7 +78,7 @@ function moveToContainer( element, container ) {
 
 // Init.
 if ( document.readyState === 'complete' ) {
-	un();
+	run();
 } else {
 	window.addEventListener( 'load', run );
 }
