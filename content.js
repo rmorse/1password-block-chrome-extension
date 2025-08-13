@@ -12,12 +12,13 @@ function run() {
 		}
 
 		const domainsToIgnore = result.domains.split(',');
+		const currentHostname = window.location.hostname;
 
-		if ( ! domainsToIgnore.includes( window.location.hostname ) ) {
+		if ( ! shouldBlockDomain( currentHostname, domainsToIgnore ) ) {
 			return;
 		}
 
-		console.log( "Hiding 1Password UI for domain: " + window.location.hostname );
+		console.log( "Hiding 1Password UI for domain: " + currentHostname );
 		
 		// The known 1Password UI tags (web components).
 		const blockTagNames = ['com-1password-notification', 'com-1password-button', 'com-1password-menu'];
@@ -74,6 +75,41 @@ function run() {
 function moveToContainer( element, container ) {
 	element.remove();
 	container.appendChild( element );
+}
+
+// Check if current hostname should be blocked based on stored domains
+function shouldBlockDomain( hostname, blockedDomains ) {
+	for ( const entry of blockedDomains ) {
+		if ( ! entry ) continue;
+
+		if ( isBlockedByEntry( hostname, entry ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// Check if hostname is blocked by a specific entry
+function isBlockedByEntry( hostname, entry ) {
+	const colonIndex = entry.indexOf(':');
+	
+	if ( colonIndex === -1 ) {
+		// Legacy format - exact match
+		return hostname === entry;
+	}
+
+	const type = entry.substring(0, colonIndex);
+	const domain = entry.substring(colonIndex + 1);
+
+	if ( type === 'exact' ) {
+		return hostname === domain;
+	}
+
+	if ( type === 'sub' || type === 'domain' ) {
+		return hostname === domain || hostname.endsWith('.' + domain);
+	}
+
+	return false;
 }
 
 // Init.
