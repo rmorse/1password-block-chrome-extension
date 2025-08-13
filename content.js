@@ -14,6 +14,8 @@ function run() {
 		const domainsToIgnore = result.domains.split(',');
 		const currentHostname = window.location.hostname;
 
+		console.log( "Checking if domain should be blocked: " + currentHostname );
+
 		if ( ! shouldBlockDomain( currentHostname, domainsToIgnore ) ) {
 			return;
 		}
