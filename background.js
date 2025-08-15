@@ -95,94 +95,128 @@ async function updateContextMenuForTab(tab) {
   const domains = extractAllPossibleDomains(url.hostname);
   const blockedDomains = await getBlockedDomains();
   
-  // Create separator
-  chrome.contextMenus.create({
-    id: 'separator-1',
-    type: 'separator',
-    contexts: ['page', 'action']
-  });
-  
-  // Create parent menu for blocking
-  chrome.contextMenus.create({
-    id: 'block-parent',
-    title: '🚫 Block 1Password on',
-    contexts: ['page', 'action']
-  });
-  
-  // Add domain options
+  // Add each domain as a top-level menu with block/unblock options in submenu
   domains.forEach(domain => {
-    const parentId = `block-${domain}`;
+    const parentId = `domain-${domain}`;
     
-    // Check if this domain is already blocked
-    const isBlocked = blockedDomains.some(entry => {
-      if (entry.includes(':')) {
-        const d = entry.substring(entry.indexOf(':') + 1);
-        return d === domain || d === `${domain}:${url.port}`;
-      }
-      return entry === domain;
-    });
+    // Check what blocking is currently active for this domain
+    const exactBlocked = blockedDomains.some(entry => 
+      entry === `exact:${domain}` || entry === domain
+    );
+    const subdomainBlocked = blockedDomains.some(entry => 
+      entry === `domain:${domain}` || entry === `sub:${domain}`
+    );
+    
+    // Create visual indicator for blocked status
+    let title = domain;
+    if (exactBlocked && subdomainBlocked) {
+      title = `🚫 ${domain} (fully blocked)`;
+    } else if (subdomainBlocked) {
+      title = `🚫 ${domain} (with subdomains)`;
+    } else if (exactBlocked) {
+      title = `🚫 ${domain} (domain only)`;
+    } else {
+      title = `🔓 ${domain}`;
+    }
     
     // Create domain parent menu
     chrome.contextMenus.create({
       id: parentId,
-      parentId: 'block-parent',
-      title: isBlocked ? `${domain} ✓` : domain,
+      title: title,
       contexts: ['page', 'action']
     });
     
-    // Add submenu options
-    chrome.contextMenus.create({
-      id: `${parentId}-exact`,
-      parentId: parentId,
-      title: 'Block this domain only',
-      contexts: ['page', 'action']
-    });
+    // Add block options if not already blocked
+    if (!exactBlocked) {
+      chrome.contextMenus.create({
+        id: `${parentId}-block-exact`,
+        parentId: parentId,
+        title: '🚫 Block this domain only',
+        contexts: ['page', 'action']
+      });
+    }
     
-    chrome.contextMenus.create({
-      id: `${parentId}-with-subs`,
-      parentId: parentId,
-      title: 'Include all subdomains',
-      contexts: ['page', 'action']
-    });
+    if (!subdomainBlocked) {
+      chrome.contextMenus.create({
+        id: `${parentId}-block-with-subs`,
+        parentId: parentId,
+        title: '🚫 Block with all subdomains',
+        contexts: ['page', 'action']
+      });
+    }
+    
+    // Add separator if we have both block and unblock options
+    if ((exactBlocked || subdomainBlocked) && (!exactBlocked || !subdomainBlocked)) {
+      chrome.contextMenus.create({
+        id: `${parentId}-separator`,
+        type: 'separator',
+        parentId: parentId,
+        contexts: ['page', 'action']
+      });
+    }
+    
+    // Add unblock options for what's currently blocked
+    if (exactBlocked) {
+      chrome.contextMenus.create({
+        id: `${parentId}-unblock-exact`,
+        parentId: parentId,
+        title: '✅ Unblock domain only',
+        contexts: ['page', 'action']
+      });
+    }
+    
+    if (subdomainBlocked) {
+      chrome.contextMenus.create({
+        id: `${parentId}-unblock-with-subs`,
+        parentId: parentId,
+        title: '✅ Unblock with subdomains',
+        contexts: ['page', 'action']
+      });
+    }
   });
   
   // Add option for domain with port if port exists
   if (url.port) {
     const domainWithPort = `${url.hostname}:${url.port}`;
-    const parentId = `block-port-${domainWithPort}`;
+    const parentId = `port-${domainWithPort}`;
+    
+    // Check if this specific port is blocked
+    const portBlocked = blockedDomains.some(entry => 
+      entry === `exact:${domainWithPort}`
+    );
+    
+    const title = portBlocked ? 
+      `🚫 ${domainWithPort}` : 
+      `🔓 ${domainWithPort}`;
+    
+    // Add separator before port option
+    chrome.contextMenus.create({
+      id: 'separator-port',
+      type: 'separator',
+      contexts: ['page', 'action']
+    });
     
     chrome.contextMenus.create({
       id: parentId,
-      parentId: 'block-parent',
-      title: `${domainWithPort} (with port)`,
+      title: title,
       contexts: ['page', 'action']
     });
     
-    chrome.contextMenus.create({
-      id: `${parentId}-exact`,
-      parentId: parentId,
-      title: 'Block this exact port',
-      contexts: ['page', 'action']
-    });
-  }
-  
-  // Create unblock menus for currently blocked domains
-  const relevantBlocked = findRelevantBlockedDomains(url.hostname, blockedDomains, url.port);
-  if (relevantBlocked.length > 0) {
-    chrome.contextMenus.create({
-      id: 'unblock-parent',
-      title: '✅ Unblock 1Password on',
-      contexts: ['page', 'action']
-    });
-    
-    relevantBlocked.forEach(entry => {
+    if (!portBlocked) {
       chrome.contextMenus.create({
-        id: `unblock-${entry}`,
-        parentId: 'unblock-parent',
-        title: formatBlockedEntry(entry),
+        id: `${parentId}-block-exact`,
+        parentId: parentId,
+        title: '🚫 Block this specific port',
         contexts: ['page', 'action']
       });
-    });
+    } else {
+      chrome.contextMenus.create({
+        id: `${parentId}-unblock-exact`,
+        parentId: parentId,
+        title: '✅ Unblock this specific port',
+        contexts: ['page', 'action']
+      });
+    }
   }
 }
 
@@ -214,52 +248,81 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
-// Handle new blocking action
-function handleBlockAction(menuId, tab) {
-  const url = new URL(tab.url);
-  
-  // Check if this is a port-specific block
-  if (menuId.startsWith('block-port-')) {
-    if (menuId.endsWith('-exact')) {
-      // Extract domain:port from the menuId
-      const domainWithPort = menuId.replace('block-port-', '').replace('-exact', '');
-      addToBlockList(`exact:${domainWithPort}`);
-    }
-    return;
-  }
-  
-  // Parse regular domain blocks
-  // The menuId format is: block-{domain}-{type}
-  // where type is either 'exact' or 'with-subs'
-  
-  if (menuId.endsWith('-exact')) {
-    const domain = menuId.replace('block-', '').replace('-exact', '');
-    addToBlockList(`exact:${domain}`);
-  } else if (menuId.endsWith('-with-subs')) {
-    const domain = menuId.replace('block-', '').replace('-with-subs', '');
-    addToBlockList(`domain:${domain}`);
-  }
-}
-
-// Handle unblocking action
-function handleUnblockAction(menuId) {
-  const entryToRemove = menuId.replace('unblock-', '');
-  removeFromBlockList(entryToRemove);
-}
-
 // Handle context menu clicks
 async function contextClick(info, tab) {
   const menuId = info.menuItemId;
   
   if (typeof menuId !== 'string') return;
   
-  if (menuId.startsWith('block-')) {
-    handleBlockAction(menuId, tab);
-    // Refresh the menu to show updated state
-    setTimeout(() => updateContextMenuForTab(tab), 100);
-  } else if (menuId.startsWith('unblock-')) {
-    handleUnblockAction(menuId);
-    // Refresh the menu to show updated state
+  // Skip separators
+  if (menuId.includes('-separator')) return;
+  
+  let domain = '';
+  let action = '';
+  
+  // Parse menu ID to extract domain and action
+  if (menuId.startsWith('domain-')) {
+    // Format: domain-{domain}-{action}
+    // Extract everything between 'domain-' and the last hyphen group
+    const parts = menuId.replace('domain-', '');
+    
+    if (parts.endsWith('-block-exact')) {
+      domain = parts.replace('-block-exact', '');
+      action = 'block-exact';
+    } else if (parts.endsWith('-block-with-subs')) {
+      domain = parts.replace('-block-with-subs', '');
+      action = 'block-with-subs';
+    } else if (parts.endsWith('-unblock-exact')) {
+      domain = parts.replace('-unblock-exact', '');
+      action = 'unblock-exact';
+    } else if (parts.endsWith('-unblock-with-subs')) {
+      domain = parts.replace('-unblock-with-subs', '');
+      action = 'unblock-with-subs';
+    }
+  } else if (menuId.startsWith('port-')) {
+    // Format: port-{domain:port}-{action}
+    const parts = menuId.replace('port-', '');
+    
+    if (parts.endsWith('-block-exact')) {
+      domain = parts.replace('-block-exact', '');
+      action = 'block-port';
+    } else if (parts.endsWith('-unblock-exact')) {
+      domain = parts.replace('-unblock-exact', '');
+      action = 'unblock-port';
+    }
+  }
+  
+  // Perform the action
+  if (action === 'block-exact') {
+    addToBlockList(`exact:${domain}`);
+  } else if (action === 'block-with-subs') {
+    addToBlockList(`domain:${domain}`);
+  } else if (action === 'block-port') {
+    addToBlockList(`exact:${domain}`);  // domain includes port
+  } else if (action === 'unblock-exact') {
+    // Find and remove the exact block entry
+    const blockedDomains = await getBlockedDomains();
+    const entryToRemove = blockedDomains.find(entry => 
+      entry === `exact:${domain}` || entry === domain
+    );
+    if (entryToRemove) {
+      removeFromBlockList(entryToRemove);
+    }
+  } else if (action === 'unblock-with-subs') {
+    // Find and remove the subdomain block entry
+    const blockedDomains = await getBlockedDomains();
+    const entryToRemove = blockedDomains.find(entry => 
+      entry === `domain:${domain}` || entry === `sub:${domain}`
+    );
+    if (entryToRemove) {
+      removeFromBlockList(entryToRemove);
+    }
+  } else if (action === 'unblock-port') {
+    removeFromBlockList(`exact:${domain}`);  // domain includes port
+  }
+  
+  // Refresh the menu to show updated state
+  if (action) {
     setTimeout(() => updateContextMenuForTab(tab), 100);
   }
 }
