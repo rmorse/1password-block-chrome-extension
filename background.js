@@ -99,21 +99,29 @@ async function updateContextMenuForTab(tab) {
   domains.forEach(domain => {
     const parentId = `domain-${domain}`;
     
-    // Check what blocking is currently active for this domain
-    const exactBlocked = blockedDomains.some(entry => 
-      entry === `exact:${domain}` || entry === domain
-    );
-    const subdomainBlocked = blockedDomains.some(entry => 
-      entry === `domain:${domain}` || entry === `sub:${domain}`
-    );
+    // Find if this domain is blocked and what type
+    let blockType = null;
+    let blockEntry = null;
+    
+    for (const entry of blockedDomains) {
+      if (!entry) continue;
+      
+      const colonIndex = entry.indexOf(':');
+      const entryType = colonIndex !== -1 ? entry.substring(0, colonIndex) : 'exact';
+      const entryDomain = colonIndex !== -1 ? entry.substring(colonIndex + 1) : entry;
+      
+      if (entryDomain === domain) {
+        blockType = entryType;
+        blockEntry = entry;
+        break;
+      }
+    }
     
     // Create visual indicator for blocked status
     let title = domain;
-    if (exactBlocked && subdomainBlocked) {
-      title = `🚫 ${domain} (fully blocked)`;
-    } else if (subdomainBlocked) {
+    if (blockType === 'domain' || blockType === 'sub') {
       title = `🚫 ${domain} (with subdomains)`;
-    } else if (exactBlocked) {
+    } else if (blockType === 'exact') {
       title = `🚫 ${domain} (domain only)`;
     } else {
       title = `🔓 ${domain}`;
@@ -126,50 +134,52 @@ async function updateContextMenuForTab(tab) {
       contexts: ['page', 'action']
     });
     
-    // Add block options if not already blocked
-    if (!exactBlocked) {
+    // If not blocked, show both block options
+    if (!blockType) {
       chrome.contextMenus.create({
         id: `${parentId}-block-exact`,
         parentId: parentId,
         title: '🚫 Block this domain only',
         contexts: ['page', 'action']
       });
-    }
-    
-    if (!subdomainBlocked) {
+      
       chrome.contextMenus.create({
         id: `${parentId}-block-with-subs`,
         parentId: parentId,
         title: '🚫 Block with all subdomains',
         contexts: ['page', 'action']
       });
-    }
-    
-    // Add separator if we have both block and unblock options
-    if ((exactBlocked || subdomainBlocked) && (!exactBlocked || !subdomainBlocked)) {
+    } else {
+      // If blocked, show the opposite block option and unblock
+      if (blockType === 'exact') {
+        chrome.contextMenus.create({
+          id: `${parentId}-block-with-subs`,
+          parentId: parentId,
+          title: '🔄 Switch to: Block with all subdomains',
+          contexts: ['page', 'action']
+        });
+      } else {
+        chrome.contextMenus.create({
+          id: `${parentId}-block-exact`,
+          parentId: parentId,
+          title: '🔄 Switch to: Block domain only',
+          contexts: ['page', 'action']
+        });
+      }
+      
+      // Add separator
       chrome.contextMenus.create({
         id: `${parentId}-separator`,
         type: 'separator',
         parentId: parentId,
         contexts: ['page', 'action']
       });
-    }
-    
-    // Add unblock options for what's currently blocked
-    if (exactBlocked) {
+      
+      // Add single unblock option
       chrome.contextMenus.create({
-        id: `${parentId}-unblock-exact`,
+        id: `${parentId}-unblock`,
         parentId: parentId,
-        title: '✅ Unblock domain only',
-        contexts: ['page', 'action']
-      });
-    }
-    
-    if (subdomainBlocked) {
-      chrome.contextMenus.create({
-        id: `${parentId}-unblock-with-subs`,
-        parentId: parentId,
-        title: '✅ Unblock with subdomains',
+        title: '✅ Unblock this domain',
         contexts: ['page', 'action']
       });
     }
@@ -272,12 +282,9 @@ async function contextClick(info, tab) {
     } else if (parts.endsWith('-block-with-subs')) {
       domain = parts.replace('-block-with-subs', '');
       action = 'block-with-subs';
-    } else if (parts.endsWith('-unblock-exact')) {
-      domain = parts.replace('-unblock-exact', '');
-      action = 'unblock-exact';
-    } else if (parts.endsWith('-unblock-with-subs')) {
-      domain = parts.replace('-unblock-with-subs', '');
-      action = 'unblock-with-subs';
+    } else if (parts.endsWith('-unblock')) {
+      domain = parts.replace('-unblock', '');
+      action = 'unblock';
     }
   } else if (menuId.startsWith('port-')) {
     // Format: port-{domain:port}-{action}
@@ -299,21 +306,15 @@ async function contextClick(info, tab) {
     addToBlockList(`domain:${domain}`);
   } else if (action === 'block-port') {
     addToBlockList(`exact:${domain}`);  // domain includes port
-  } else if (action === 'unblock-exact') {
-    // Find and remove the exact block entry
+  } else if (action === 'unblock') {
+    // Find and remove any block entry for this domain
     const blockedDomains = await getBlockedDomains();
-    const entryToRemove = blockedDomains.find(entry => 
-      entry === `exact:${domain}` || entry === domain
-    );
-    if (entryToRemove) {
-      removeFromBlockList(entryToRemove);
-    }
-  } else if (action === 'unblock-with-subs') {
-    // Find and remove the subdomain block entry
-    const blockedDomains = await getBlockedDomains();
-    const entryToRemove = blockedDomains.find(entry => 
-      entry === `domain:${domain}` || entry === `sub:${domain}`
-    );
+    const entryToRemove = blockedDomains.find(entry => {
+      if (!entry) return false;
+      const colonIndex = entry.indexOf(':');
+      const entryDomain = colonIndex !== -1 ? entry.substring(colonIndex + 1) : entry;
+      return entryDomain === domain;
+    });
     if (entryToRemove) {
       removeFromBlockList(entryToRemove);
     }
@@ -331,17 +332,40 @@ async function contextClick(info, tab) {
 function addToBlockList(domainEntry) {
   chrome.storage.sync.get(['domains']).then((result) => {
     let domainsToIgnore = result.domains ? result.domains : '';
-    if (!domainsToIgnore.includes(domainEntry)) {
-      domainsToIgnore = domainsToIgnore.concat(domainEntry, ',');
-      chrome.storage.sync.set({ domains: domainsToIgnore });
+    
+    // Parse the new entry to get domain
+    const colonIndex = domainEntry.indexOf(':');
+    const newType = colonIndex !== -1 ? domainEntry.substring(0, colonIndex) : 'exact';
+    const newDomain = colonIndex !== -1 ? domainEntry.substring(colonIndex + 1) : domainEntry;
+    
+    // Remove any existing blocks for this domain (both exact and domain/subdomain blocks)
+    // This ensures we only have one type of block per domain
+    const existingEntries = domainsToIgnore.split(',').filter(e => e);
+    const filteredEntries = existingEntries.filter(entry => {
+      if (!entry) return false;
       
-      // Reload the current tab to apply changes
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-          chrome.tabs.reload(tabs[0].id);
-        }
-      });
-    }
+      const entryColonIndex = entry.indexOf(':');
+      const entryDomain = entryColonIndex !== -1 ? 
+        entry.substring(entryColonIndex + 1) : entry;
+      
+      // Remove if it's the same domain (regardless of block type)
+      return entryDomain !== newDomain;
+    });
+    
+    // Add the new entry
+    filteredEntries.push(domainEntry);
+    
+    // Rebuild the string
+    domainsToIgnore = filteredEntries.join(',') + ',';
+    
+    chrome.storage.sync.set({ domains: domainsToIgnore });
+    
+    // Reload the current tab to apply changes
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.reload(tabs[0].id);
+      }
+    });
   });
 }
 
