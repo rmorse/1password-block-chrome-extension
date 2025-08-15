@@ -81,10 +81,12 @@ function moveToContainer( element, container ) {
 
 // Check if current hostname should be blocked based on stored domains
 function shouldBlockDomain( hostname, blockedDomains ) {
+	console.log("blocked domains: ", blockedDomains);
 	for ( const entry of blockedDomains ) {
 		if ( ! entry ) continue;
 
 		if ( isBlockedByEntry( hostname, entry ) ) {
+			console.log("blocked by entry: ", entry);
 			return true;
 		}
 	}

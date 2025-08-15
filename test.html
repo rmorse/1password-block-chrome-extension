@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1Password Blocker Extension Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-section h2 {
+            color: #0066cc;
+            margin-top: 0;
+        }
+        .domain-list {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .domain-list li {
+            margin: 8px 0;
+            font-family: monospace;
+        }
+        .instructions {
+            background: #fff9e6;
+            border-left: 4px solid #ffb700;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .status {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔒 1Password Blocker Extension Test Page</h1>
+    
+    <div class="instructions">
+        <strong>📋 How to Test:</strong>
+        <ol>
+            <li>Right-click anywhere on this page</li>
+            <li>Look for "🚫 Block 1Password on" in the context menu</li>
+            <li>You should see hierarchical domain options based on your current URL</li>
+            <li>Each domain has submenu options for blocking strategies</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Scenarios</h2>
+        
+        <div class="domain-list">
+            <h3>1. Multi-level Subdomain Testing</h3>
+            <p>If you're on <code>sub.sub2.domain.com</code>, you should see:</p>
+            <ul>
+                <li>domain.com</li>
+                <li>sub2.domain.com</li>
+                <li>sub.sub2.domain.com</li>
+            </ul>
+            <p>Each with options: "Block this domain only" or "Include all subdomains"</p>
+        </div>
+
+        <div class="domain-list">
+            <h3>2. Localhost with Ports</h3>
+            <p>If you're on <code>localhost:3000</code>, you should see:</p>
+            <ul>
+                <li>localhost</li>
+                <li>localhost:3000 (with port)</li>
+            </ul>
+            <p>This allows blocking specific development servers.</p>
+        </div>
+
+        <div class="domain-list">
+            <h3>3. Standard Domain</h3>
+            <p>If you're on <code>example.com</code>, you should see:</p>
+            <ul>
+                <li>example.com</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Features to Verify</h2>
+        <ul>
+            <li>✅ Dynamic menu generation based on current tab</li>
+            <li>✅ Hierarchical domain structure</li>
+            <li>✅ Port-specific blocking for localhost</li>
+            <li>✅ Visual indicators for already blocked domains (✓)</li>
+            <li>✅ Unblock menu shows only relevant blocked domains</li>
+            <li>✅ Page auto-reloads after blocking/unblocking</li>
+        </ul>
+    </div>
+
+    <div class="status">
+        <strong>Current URL:</strong> <span id="current-url"></span><br>
+        <strong>Hostname:</strong> <span id="hostname"></span><br>
+        <strong>Port:</strong> <span id="port"></span>
+    </div>
+
+    <script>
+        // Display current URL information
+        document.getElementById('current-url').textContent = window.location.href;
+        document.getElementById('hostname').textContent = window.location.hostname;
+        document.getElementById('port').textContent = window.location.port || '(default)';
+
+        // Add input fields for 1Password to potentially appear
+        const testForm = document.createElement('div');
+        testForm.innerHTML = `
+            <div class="test-section">
+                <h2>1Password Test Fields</h2>
+                <p>These fields may trigger 1Password UI elements:</p>
+                <form>
+                    <div style="margin: 10px 0;">
+                        <label for="username">Username:</label><br>
+                        <input type="text" id="username" name="username" style="padding: 5px; width: 200px;">
+                    </div>
+                    <div style="margin: 10px 0;">
+                        <label for="password">Password:</label><br>
+                        <input type="password" id="password" name="password" style="padding: 5px; width: 200px;">
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(testForm);
+    </script>
+</body>
+</html>
