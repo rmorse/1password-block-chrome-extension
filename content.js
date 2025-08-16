@@ -13,14 +13,16 @@ function run() {
 
 		const domainsToIgnore = result.domains.split(',');
 		const currentHostname = window.location.hostname;
+		const currentHost = window.location.host; // This includes port if present
+		const currentPort = window.location.port;
 
-		console.log( "Checking if domain should be blocked: " + currentHostname );
+		console.log( "Checking if domain should be blocked: " + currentHost );
 
-		if ( ! shouldBlockDomain( currentHostname, domainsToIgnore ) ) {
+		if ( ! shouldBlockDomain( currentHostname, currentHost, domainsToIgnore ) ) {
 			return;
 		}
 
-		console.log( "Hiding 1Password UI for domain: " + currentHostname );
+		console.log( "Hiding 1Password UI for domain: " + currentHost );
 		
 		// The known 1Password UI tags (web components).
 		const blockTagNames = ['com-1password-notification', 'com-1password-button', 'com-1password-menu'];
@@ -80,12 +82,12 @@ function moveToContainer( element, container ) {
 }
 
 // Check if current hostname should be blocked based on stored domains
-function shouldBlockDomain( hostname, blockedDomains ) {
+function shouldBlockDomain( hostname, hostWithPort, blockedDomains ) {
 	console.log("blocked domains: ", blockedDomains);
 	for ( const entry of blockedDomains ) {
 		if ( ! entry ) continue;
 
-		if ( isBlockedByEntry( hostname, entry ) ) {
+		if ( isBlockedByEntry( hostname, hostWithPort, entry ) ) {
 			console.log("blocked by entry: ", entry);
 			return true;
 		}
@@ -94,7 +96,7 @@ function shouldBlockDomain( hostname, blockedDomains ) {
 }
 
 // Check if hostname is blocked by a specific entry
-function isBlockedByEntry( hostname, entry ) {
+function isBlockedByEntry( hostname, hostWithPort, entry ) {
 	const colonIndex = entry.indexOf(':');
 	
 	if ( colonIndex === -1 ) {
@@ -106,10 +108,13 @@ function isBlockedByEntry( hostname, entry ) {
 	const domain = entry.substring(colonIndex + 1);
 
 	if ( type === 'exact' ) {
-		return hostname === domain;
+		// Check both hostname and hostname:port for exact matches
+		// This handles both regular domains and port-specific blocks
+		return hostname === domain || hostWithPort === domain;
 	}
 
 	if ( type === 'sub' || type === 'domain' ) {
+		// For subdomain blocking, only check the hostname (ignore ports)
 		return hostname === domain || hostname.endsWith('.' + domain);
 	}
 

@@ -81,6 +81,25 @@ function formatBlockedEntry(entry) {
   return domain;
 }
 
+// Check if a domain is blocked by a parent domain with subdomain blocking
+function isBlockedByParent(domain, blockedDomains) {
+  for (const entry of blockedDomains) {
+    if (!entry) continue;
+    
+    const colonIndex = entry.indexOf(':');
+    const entryType = colonIndex !== -1 ? entry.substring(0, colonIndex) : 'exact';
+    const entryDomain = colonIndex !== -1 ? entry.substring(colonIndex + 1) : entry;
+    
+    // Check if this is a parent domain with subdomain blocking
+    if ((entryType === 'domain' || entryType === 'sub') && 
+        domain !== entryDomain && 
+        domain.endsWith('.' + entryDomain)) {
+      return entryDomain;  // Return the parent domain that's blocking it
+    }
+  }
+  return null;
+}
+
 // Update context menu based on current tab
 async function updateContextMenuForTab(tab) {
   // Clear existing menus
@@ -99,7 +118,10 @@ async function updateContextMenuForTab(tab) {
   domains.forEach(domain => {
     const parentId = `domain-${domain}`;
     
-    // Find if this domain is blocked and what type
+    // Check if this domain is blocked by a parent domain
+    const parentBlocker = isBlockedByParent(domain, blockedDomains);
+    
+    // Find if this domain is blocked directly
     let blockType = null;
     let blockEntry = null;
     
@@ -119,7 +141,9 @@ async function updateContextMenuForTab(tab) {
     
     // Create visual indicator for blocked status
     let title = domain;
-    if (blockType === 'domain' || blockType === 'sub') {
+    if (parentBlocker) {
+      title = `🔒 ${domain} (blocked by ${parentBlocker})`;
+    } else if (blockType === 'domain' || blockType === 'sub') {
       title = `🚫 ${domain} (with subdomains)`;
     } else if (blockType === 'exact') {
       title = `🚫 ${domain} (domain only)`;
@@ -134,8 +158,17 @@ async function updateContextMenuForTab(tab) {
       contexts: ['page', 'action']
     });
     
-    // If not blocked, show both block options
-    if (!blockType) {
+    // If blocked by parent, show info message only
+    if (parentBlocker) {
+      chrome.contextMenus.create({
+        id: `${parentId}-info`,
+        parentId: parentId,
+        title: `ℹ️ Already blocked by ${parentBlocker}`,
+        enabled: false,  // Disabled item just for information
+        contexts: ['page', 'action']
+      });
+    } else if (!blockType) {
+      // If not blocked, show both block options
       chrome.contextMenus.create({
         id: `${parentId}-block-exact`,
         parentId: parentId,

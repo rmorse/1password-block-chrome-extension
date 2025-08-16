@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1Password Blocker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 320px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: white;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .current-domain {
+            padding: 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .current-domain-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .current-domain-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #212529;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .status {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .status-icon {
+            font-size: 20px;
+        }
+
+        .status-text {
+            flex: 1;
+        }
+
+        .status-text .title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #212529;
+        }
+
+        .status-text .subtitle {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+
+        .quick-actions {
+            padding: 16px;
+        }
+
+        .quick-actions-title {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-outline {
+            background: white;
+            color: #667eea;
+            border: 1px solid #667eea;
+        }
+
+        .btn-outline:hover {
+            background: #f8f9fa;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .footer {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .footer-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-decoration: none;
+            color: #6c757d;
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+
+        .footer-link:hover {
+            color: #495057;
+        }
+
+        .loading {
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .no-domain {
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .no-domain-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .no-domain-text {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <span>🔒</span>
+            1Password Blocker
+        </h1>
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+        Loading...
+    </div>
+
+    <div id="noDomain" class="no-domain" style="display: none;">
+        <div class="no-domain-icon">🚫</div>
+        <div class="no-domain-text">Not on a blockable page</div>
+    </div>
+
+    <div id="mainContent" style="display: none;">
+        <div class="current-domain">
+            <div class="current-domain-label">Current Domain</div>
+            <div class="current-domain-value" id="currentDomain">-</div>
+        </div>
+
+        <div class="status" id="domainStatus">
+            <span class="status-icon" id="statusIcon">🔓</span>
+            <div class="status-text">
+                <div class="title" id="statusTitle">Not Blocked</div>
+                <div class="subtitle" id="statusSubtitle">1Password is active on this domain</div>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <div class="quick-actions-title">Quick Actions</div>
+            
+            <button class="btn btn-primary" id="blockDomainBtn" onclick="blockDomain('exact')">
+                <span>🚫</span>
+                Block Domain Only
+            </button>
+            
+            <button class="btn btn-primary" id="blockSubdomainsBtn" onclick="blockDomain('domain')">
+                <span>🚫</span>
+                Block with Subdomains
+            </button>
+            
+            <button class="btn btn-success" id="unblockBtn" onclick="unblockDomain()" style="display: none;">
+                <span>✅</span>
+                Unblock Domain
+            </button>
+            
+            <button class="btn btn-outline" id="changeTypeBtn" onclick="changeBlockType()" style="display: none;">
+                <span>🔄</span>
+                <span id="changeTypeText">Switch Block Type</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <a href="#" class="footer-link" id="settingsLink">
+            <span>⚙️</span>
+            Manage All Blocked Domains
+        </a>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

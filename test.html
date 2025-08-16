@@ -66,9 +66,10 @@
         <strong>📋 How to Test:</strong>
         <ol>
             <li>Right-click anywhere on this page</li>
-            <li>Look for "🚫 Block 1Password on" in the context menu</li>
-            <li>You should see hierarchical domain options based on your current URL</li>
-            <li>Each domain has submenu options for blocking strategies</li>
+            <li>Domains appear directly in the context menu</li>
+            <li>Each domain shows its current status with icons</li>
+            <li>Click a domain to see available block/unblock options</li>
+            <li>Subdomains blocked by parent domains show 🔒 and cannot be modified</li>
         </ol>
     </div>
 
@@ -79,11 +80,11 @@
             <h3>1. Multi-level Subdomain Testing</h3>
             <p>If you're on <code>sub.sub2.domain.com</code>, you should see:</p>
             <ul>
-                <li>domain.com</li>
-                <li>sub2.domain.com</li>
-                <li>sub.sub2.domain.com</li>
+                <li>🔓 domain.com</li>
+                <li>🔓 sub2.domain.com</li>
+                <li>🔓 sub.sub2.domain.com</li>
             </ul>
-            <p>Each with options: "Block this domain only" or "Include all subdomains"</p>
+            <p><strong>Parent Domain Blocking:</strong> If you block <code>domain.com</code> with subdomains, both <code>sub2.domain.com</code> and <code>sub.sub2.domain.com</code> will show as 🔒 (blocked by parent) and cannot be modified.</p>
         </div>
 
         <div class="domain-list">
@@ -108,12 +109,14 @@
     <div class="test-section">
         <h2>Features to Verify</h2>
         <ul>
-            <li>✅ Dynamic menu generation based on current tab</li>
-            <li>✅ Hierarchical domain structure</li>
-            <li>✅ Port-specific blocking for localhost</li>
-            <li>✅ Visual indicators for already blocked domains (✓)</li>
-            <li>✅ Unblock menu shows only relevant blocked domains</li>
+            <li>✅ Domains appear directly at top level (no parent menu)</li>
+            <li>✅ Each domain can only have one block type at a time</li>
+            <li>✅ Switching block types automatically replaces the existing block</li>
+            <li>✅ Parent domain blocks prevent child domain modifications</li>
+            <li>✅ Visual indicators: 🔓 (not blocked), 🚫 (blocked), 🔒 (blocked by parent)</li>
+            <li>✅ Port-specific blocking for localhost development</li>
             <li>✅ Page auto-reloads after blocking/unblocking</li>
+            <li>✅ Single unblock option per domain (no confusion)</li>
         </ul>
     </div>
 
