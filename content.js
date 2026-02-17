@@ -17,7 +17,7 @@ function run() {
 			return;
 		}
 
-		console.log( "Hiding 1Password UI for domain: " + window.location.hostname );
+		console.debug( "Hiding 1Password UI for domain: " + window.location.hostname );
 		
 		// The known 1Password UI tags (web components).
 		const blockTagNames = ['com-1password-notification', 'com-1password-button', 'com-1password-menu'];
